@@ -337,14 +337,27 @@ with tabs[5]:
                         logger=None,
                     )
 
-                st.success("Trailer rendered!")
-                st.video(out_path)
+                # Read the rendered file into memory and store in session_state so the
+                # preview + download button survive Streamlit reruns (e.g. clicking download).
                 with open(out_path, "rb") as f:
-                    st.download_button("⬇️ Download trailer (MP4)", f, file_name="trailer.mp4", mime="video/mp4")
+                    st.session_state.rendered_video_bytes = f.read()
+                st.session_state.rendered_video_name = f"trailer_{int(time.time())}.mp4"
+                st.success("Trailer rendered!")
 
             except Exception as e:
                 st.error(f"Render failed: {e}")
                 st.info("Try shorter clips, simpler effects, or fewer tracks and render again.")
 
+    # Show the latest render (persists across reruns, e.g. after clicking Download)
+    if st.session_state.get("rendered_video_bytes"):
+        st.video(st.session_state.rendered_video_bytes)
+        st.download_button(
+            "⬇️ Download trailer (MP4)",
+            data=st.session_state.rendered_video_bytes,
+            file_name=st.session_state.get("rendered_video_name", "trailer.mp4"),
+            mime="video/mp4",
+        )
+
 st.divider()
 st.caption("AI Trailer Studio — MVP build. Uses gTTS for AI narration and DejaVu system fonts for titles/captions.")
+
